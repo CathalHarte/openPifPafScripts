@@ -1,0 +1,26 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Skeleton AVI",
+            "type": "python",
+            "request": "launch",
+            "module": "anonymise_video_v2.blur_video",
+            "args": [
+                "--source", "C:\\Users\\STIMO2-Admin\\data\\October_anon\\GH030032_Trim_Erigo_STIMO2.mp4",
+                "--video-output", "C:\\Users\\STIMO2-Admin\\data\\Exo_skeleton.avi",
+                "--max-frames", "50"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Debug GJ",
+            "type": "python",
+            "request": "launch",
+            "program": "process_single_video_script.py"
+        }
+    ]
+}
