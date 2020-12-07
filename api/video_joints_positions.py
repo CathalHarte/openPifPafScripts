@@ -14,7 +14,7 @@ import cv2  # pylint: disable=import-error
 from openpifpaf import decoder, network, transforms, visualizer, __version__
 import openpifpaf as pifpaf
 
-import openpyxl
+from openpyxl import Workbook
 
 LOG = logging.getLogger(__name__)
 
@@ -85,6 +85,7 @@ class ProcessingVideoArgs:
         connection_method="blend",
         greedy=False,
         video_output="",
+        xls_output="",
         quiet=False,
         debug=False,
         skip_frames=1,
@@ -180,7 +181,7 @@ def keypoint_painter_factory():
     keypoint_painter.show_decoding_order = False
     return keypoint_painter
 
-def csv_header(keypoint_names):
+def get_column_names(keypoint_names):
     column_names = []
     for name in keypoint_names:
         for postfix in ["x", "y", "confidence"]:
@@ -196,14 +197,15 @@ def flatten_keypoints_matrix(keypoint_matrix):
 
 def process_video(
     source,
-    output,
+    video_output,
+    xls_output,
     args
 ):
     keypoint_painter = keypoint_painter_factory()
         
     animation = pifpaf.show.AnimationFrame(
         show=False,
-        video_output=output
+        video_output=video_output
     )
 
     # Set up input and output
@@ -212,119 +214,85 @@ def process_video(
     # Used to report processing time per frame
     last_loop = time.time()
 
+    workbook = Workbook()
+
+    sheet = workbook.active
+
     first_frame = True
-    with open('data.csv', 'w') as csvfile:
-        filewriter = csv.writer(csvfile, delimiter=';',
-                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        for frame_i, (ax, _) in enumerate(animation.iter()):
-            _, image = capture.read()
 
-            # Determine if we will process this frame
-            if image is None:
-                LOG.info('no more images captured')
-                break
+    for frame_i, (ax, _) in enumerate(animation.iter()):
+        _, image = capture.read()
 
-            if frame_i < args.start_frame:
-                animation.skip_frame()
-                continue
+        # Determine if we will process this frame
+        if image is None:
+            LOG.info('no more images captured')
+            break
 
-            if args.max_frames and frame_i >= args.start_frame + args.max_frames:
-                break
+        if frame_i < args.start_frame:
+            animation.skip_frame()
+            continue
 
-            if frame_i % args.skip_frames != 0:
-                animation.skip_frame()
-                continue
+        if args.max_frames and frame_i >= args.start_frame + args.max_frames:
+            break
 
-            image_pifpaf = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            def get_resize_pow2(max_allowed, image_dims):
-                max_dim = max(image_dims[0], image_dims[1])
-                # find x: max_allowed > max_dim / ( 2 ^ x)
-                x = np.log2(max_dim/max_allowed)
-                return 2 ** x
+        if frame_i % args.skip_frames != 0:
+            animation.skip_frame()
+            continue
+
+        image_pifpaf = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        def get_resize_pow2(max_allowed, image_dims):
+            max_dim = max(image_dims[0], image_dims[1])
+            # find x: max_allowed > max_dim / ( 2 ^ x)
+            x = np.log2(max_dim/max_allowed)
+            return 2 ** x
 
 
-            image_rescale = get_resize_pow2(
-                max_allowed = 1280,
-                image_dims = image_pifpaf.shape
-            )
-            # with image_descale as 
-            image_pifpaf = cv2.resize(
-                image_pifpaf, 
-                (0,0), 
-                fx = 1 / image_rescale,
-                fy = 1 / image_rescale
-            )
-                
-
-            start = time.time()
-            image_pil = PIL.Image.fromarray(image_pifpaf)
-            processed_image, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
-            LOG.debug('preprocessing time %.3fs', time.time() - start)
-
-            preds = args.processor.batch(args.model, torch.unsqueeze(processed_image, 0), device=args.device)[0]
-
-            if first_frame:
-                filewriter.writerow(["sep="]) # patch needed to open a .csv in excel nowadays
-                filewriter.writerow(csv_header(preds[0].keypoints))
-                ax, _ = animation.frame_init(image)
-                keypoint_painter.xy_scale = image_rescale
-                first_frame = False
-                
+        image_rescale = get_resize_pow2(
+            max_allowed = 1280,
+            image_dims = image_pifpaf.shape
+        )
+        # with image_descale as 
+        image_pifpaf = cv2.resize(
+            image_pifpaf, 
+            (0,0), 
+            fx = 1 / image_rescale,
+            fy = 1 / image_rescale
+        )
             
-            filewriter.writerow(flatten_keypoints_matrix(preds[0].data))
 
-            image_color_corrected = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            ax.imshow(image_color_corrected) 
-            keypoint_painter.annotations(ax, preds)
+        start = time.time()
+        image_pil = PIL.Image.fromarray(image_pifpaf)
+        processed_image, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
+        LOG.debug('preprocessing time %.3fs', time.time() - start)
 
-            current_time = time.time()
-            elapsed_time = current_time - last_loop
-            if(elapsed_time == 0):
-                processed_fps = 1000
-            else:
-                processed_fps = 1.0 / elapsed_time
+        preds = args.processor.batch(args.model, torch.unsqueeze(processed_image, 0), device=args.device)[0]
 
-            LOG.info(
-                'frame %d, loop time = %.3fs, processed FPS = %.3f',
-                frame_i,
-                elapsed_time,
-                processed_fps
-            )
-            last_loop = current_time
+        if first_frame:
+            sheet.append(get_column_names(preds[0].keypoints))
+            ax, _ = animation.frame_init(image)
+            keypoint_painter.xy_scale = image_rescale
+            first_frame = False
+            
+        
+        sheet.append(flatten_keypoints_matrix(preds[0].data))
 
-if __name__ == '__main__':
-    args = cli()
-    interpretted_args = ProcessingVideoArgs(
-        checkpoint = args.checkpoint,
-        basenet = args.basenet,
-        headnets = args.headnets,
-        pretrained = args.pretrained,
-        two_scale = args.two_scale,
-        multi_scale = args.multi_scale,
-        multi_scale_hflip = args.multi_scale_hflip,
-        cross_talk = args.cross_talk,
-        download_progress = args.download_progress,
-        head_dropout = args.head_dropout,
-        head_quad = args.head_quad,
-        seed_threshold = args.seed_threshold,
-        instance_threshold = args.instance_threshold,
-        keypoint_threshold = args.keypoint_threshold,
-        decoder_workers = args.decoder_workers,
-        dense_connections = args.dense_connections,
-        dense_coupling = args.dense_coupling,
-        caf_seeds = args.caf_seeds,
-        force_complete_pose = args.force_complete_pose,
-        profile_decoder = args.profile_decoder,
-        cif_th = args.cif_th,
-        caf_th = args.caf_th,
-        connection_method = args.connection_method,
-        greedy = args.greedy,
-        quiet = args.quiet,
-        debug = args.debug,
-        skip_frames = args.skip_frames,
-        max_frames = args.max_frames,
-        start_frame = args.start_frame,
-        confidence_threshold = args.confidence_threshold
-    )
+        image_color_corrected = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        ax.imshow(image_color_corrected) 
+        keypoint_painter.annotations(ax, preds)
 
-    process_video(args.source, args.video_output, interpretted_args)
+        current_time = time.time()
+        elapsed_time = current_time - last_loop
+        if(elapsed_time == 0):
+            processed_fps = 1000
+        else:
+            processed_fps = 1.0 / elapsed_time
+
+        LOG.info(
+            'frame %d, loop time = %.3fs, processed FPS = %.3f',
+            frame_i,
+            elapsed_time,
+            processed_fps
+        )
+        last_loop = current_time
+
+    workbook.save(xls_output)

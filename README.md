@@ -33,6 +33,7 @@ Open powershell in the repository folder to create a virtual environment for thi
 	pip install "git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI"
     pip install matplotlib
     pip install openpifpaf===0.11.5
+    pip install openpyxl
 
 To confirm that the installation was successful close the powershell, open a new one, set up the virtual env again, and run the example given in openpifpaf's README.md
 
