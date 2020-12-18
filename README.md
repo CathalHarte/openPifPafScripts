@@ -41,6 +41,32 @@ To confirm that the installation was successful close the powershell, open a new
     cd C:\path\to\this\repo\anonymise_video\openpifpaf
     python -m openpifpaf.predict --show docs/coco/000000081988.jpg
 
+### Important Patch
+For the tracked output video, we use OpenPifPaf's own video export. Unfortunately the writer class has frame rate set to a constant of 10Hz.
+It is necessary to edit the constructor of AnimationFrame in ```openpifpaf\show\animation_frame.py``` to allow this to be set to the correct frequency of the input video. Code below
+
+class AnimationFrame:
+    video_fps = 10
+    video_dpi = 100
+
+    def __init__(self, *,
+                 fig_width=8.0,
+                 fig_init_args=None,
+                 show=False,
+                 video_output=None,
+                 second_visual=False,
+                 video_fps=10):
+        self.video_fps = video_fps
+        self.fig_width = fig_width
+        self.fig_init_args = fig_init_args or {}
+        self.show = show
+        self.video_output = video_output
+        self.video_writer = None
+        if self.video_output:
+            self.video_writer = matplotlib.animation.writers['ffmpeg'](fps=self.video_fps)
+
+
+
 ### CUDA
 If you have a CUDA compatible GPU, install CUDA from https://developer.nvidia.com/cuda-downloads to accelerate the openpifpaf processing. You can verify that the installation was successful by navigating to the powershell, running python, and querying
 
@@ -81,3 +107,4 @@ OpenPifPaf isn't really designed for videos, as such it doesn't consistently ind
 
 Inputs and Outputs
 ------------------
+It is recommended to write scripts to interact with this library. An example of such is ```process_folder_script.py```. This avoids losing config info to the command line history.
