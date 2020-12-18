@@ -76,5 +76,8 @@ There now exists a profiling script to determine bottlenecks. Simply launch it w
     # or
     pip install snakeviz-2.1.0-py2.py3-none-any.whl
 
+### Animotica
+OpenPifPaf isn't really designed for videos, as such it doesn't consistently index the skeletons. A simple free tool to crop out physiotherapists is animotica, which can be downloaded from the microsoft store. It
+
 Inputs and Outputs
 ------------------

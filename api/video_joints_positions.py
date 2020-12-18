@@ -16,6 +16,8 @@ import openpifpaf as pifpaf
 
 from openpyxl import Workbook
 
+from coffee import keep_awake
+
 LOG = logging.getLogger(__name__)
 
 
@@ -156,7 +158,6 @@ class ProcessingVideoArgs:
         network.configure(self)
         pifpaf.show.configure(internal_config)
         visualizer.configure(internal_config)
-        # pifpaf.show.AnimationFrame.video_fps = self.video_fps
 
         # add args.device
         self.device = torch.device('cpu')
@@ -183,13 +184,16 @@ def keypoint_painter_factory():
 
 def get_column_names(keypoint_names):
     column_names = []
+    column_names.append("timeStamp(s)")
     for name in keypoint_names:
         for postfix in ["x", "y", "confidence"]:
             column_names.append(name + "_" + postfix)
     return column_names
 
-def flatten_keypoints_matrix(keypoint_matrix):
+def flatten_keypoints_matrix(timeStamp, keypoint_matrix):
     data_row = []
+    # round(timeStamp, 2) # why be so fussy?
+    data_row.append(timeStamp)
     for position in keypoint_matrix:
         for point in position:
             data_row.append(point)
@@ -199,17 +203,26 @@ def process_video(
     source,
     video_output,
     xls_output,
+    body_idx,
     args
 ):
+    osSleep = None
+    # in Windows, prevent the OS from sleeping while we run
+    if os.name == 'nt':
+        osSleep = keep_awake.WindowsInhibitor()
+        osSleep.inhibit()
+
     keypoint_painter = keypoint_painter_factory()
-        
-    animation = pifpaf.show.AnimationFrame(
-        show=False,
-        video_output=video_output
-    )
 
     # Set up input and output
-    capture = cv2.VideoCapture(source)    
+    capture = cv2.VideoCapture(source)
+    fps = capture.get(cv2.CAP_PROP_FPS)
+
+    animation = pifpaf.show.AnimationFrame(
+        show=False,
+        video_output=video_output,
+        video_fps=fps
+    )
     
     # Used to report processing time per frame
     last_loop = time.time()
@@ -219,6 +232,8 @@ def process_video(
     sheet = workbook.active
 
     first_frame = True
+
+    time_stamp_seconds = 0.0
 
     for frame_i, (ax, _) in enumerate(animation.iter()):
         _, image = capture.read()
@@ -231,6 +246,7 @@ def process_video(
         if frame_i < args.start_frame:
             animation.skip_frame()
             continue
+
 
         if args.max_frames and frame_i >= args.start_frame + args.max_frames:
             break
@@ -272,9 +288,12 @@ def process_video(
             ax, _ = animation.frame_init(image)
             keypoint_painter.xy_scale = image_rescale
             first_frame = False
-            
-        
-        sheet.append(flatten_keypoints_matrix(preds[0].data))
+
+        try:
+            sheet.append(flatten_keypoints_matrix(time_stamp_seconds, preds[body_idx].data))
+            time_stamp_seconds = time_stamp_seconds + (1 / fps)
+        except:
+            sheet.append([np.nan for i in range(len(preds[0].keypoints) + 1)])
 
         image_color_corrected = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         ax.imshow(image_color_corrected) 
@@ -296,3 +315,5 @@ def process_video(
         last_loop = current_time
 
     workbook.save(xls_output)
+    if osSleep:
+        osSleep.uninhibit()

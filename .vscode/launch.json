@@ -20,7 +20,7 @@
             "name": "Debug GJ",
             "type": "python",
             "request": "launch",
-            "program": "process_single_video_script.py"
+            "program": "process_folder_script.py"
         }
     ]
 }
