@@ -17,7 +17,7 @@
             "justMyCode": false
         },
         {
-            "name": "Debug GJ",
+            "name": "Debug folder",
             "type": "python",
             "request": "launch",
             "program": "process_folder_script.py"

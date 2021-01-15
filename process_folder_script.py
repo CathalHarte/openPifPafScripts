@@ -5,12 +5,12 @@ import glob
 import os
 from datetime import datetime
 
-input_dir = 'C:\\Users\\STIMO2-Admin\\data\\tracking_batch'
+input_dir = 'C:\\Users\\STIMO2-Admin\\data\\CHECK_labeling'
 
 video_inputs = glob.glob(
     os.path.join(
         input_dir,
-        '*.mp4'
+        '*.avi'
     )
 )
 
@@ -30,10 +30,10 @@ for video_input in video_inputs:
     basename = os.path.basename(video_input).split(".")[0]
     video_output = os.path.join(
         output_dir,
-        basename + "_skeleton.mp4"
+        basename + "_skeleton.avi"
     )
     xls_output = os.path.join(
         output_dir,
         basename + "_skeleton.xlsx"
     )
-    process_video(video_input, video_output, xls_output, 0, extra_args)
+    process_video(video_input, video_output, xls_output, extra_args)

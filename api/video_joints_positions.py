@@ -203,7 +203,6 @@ def process_video(
     source,
     video_output,
     xls_output,
-    body_idx,
     args
 ):
     osSleep = None
@@ -229,11 +228,13 @@ def process_video(
 
     workbook = Workbook()
 
+    sheet_list = []
     sheet = workbook.active
-
-    first_frame = True
+    workbook.remove_sheet(sheet)
 
     time_stamp_seconds = 0.0
+
+    first_frame = True
 
     for frame_i, (ax, _) in enumerate(animation.iter()):
         _, image = capture.read()
@@ -284,16 +285,22 @@ def process_video(
         preds = args.processor.batch(args.model, torch.unsqueeze(processed_image, 0), device=args.device)[0]
 
         if first_frame:
-            sheet.append(get_column_names(preds[0].keypoints))
             ax, _ = animation.frame_init(image)
             keypoint_painter.xy_scale = image_rescale
             first_frame = False
 
-        try:
-            sheet.append(flatten_keypoints_matrix(time_stamp_seconds, preds[body_idx].data))
-            time_stamp_seconds = time_stamp_seconds + (1 / fps)
-        except:
-            sheet.append([np.nan for i in range(len(preds[0].keypoints) + 1)])
+        for idx, pred in enumerate(preds):
+            if len(sheet_list) <= idx:
+                sheet = workbook.create_sheet("Body " + str(idx))
+                sheet_list.append(sheet)
+                sheet.append(get_column_names(pred.keypoints))
+
+            try:
+                sheet_list[idx].append(flatten_keypoints_matrix(time_stamp_seconds, pred.data))
+            except:
+                sheet.append([np.nan for i in range(len(preds[0].keypoints) + 1)])
+
+        time_stamp_seconds = time_stamp_seconds + (1 / fps)
 
         image_color_corrected = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         ax.imshow(image_color_corrected) 
