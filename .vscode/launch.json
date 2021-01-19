@@ -21,6 +21,12 @@
             "type": "python",
             "request": "launch",
             "program": "process_folder_script.py"
+        },
+        {
+            "name": "Debug hungarian",
+            "type": "python",
+            "request": "launch",
+            "program": "rearrange_script.py"
         }
     ]
 }

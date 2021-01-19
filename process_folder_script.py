@@ -5,7 +5,7 @@ import glob
 import os
 from datetime import datetime
 
-input_dir = 'C:\\Users\\STIMO2-Admin\\data\\CHECK_labeling'
+input_dir = 'C:\\Users\\STIMO2-Admin\\data\\side_on'
 
 video_inputs = glob.glob(
     os.path.join(
