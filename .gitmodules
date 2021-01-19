@@ -1,0 +1,3 @@
+[submodule "hungarian"]
+	path = hungarian
+	url = https://github.com/tdedecko/hungarian-algorithm.git
