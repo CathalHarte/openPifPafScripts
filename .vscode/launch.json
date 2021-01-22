@@ -17,10 +17,10 @@
             "justMyCode": false
         },
         {
-            "name": "Debug folder",
+            "name": "Debug folders",
             "type": "python",
             "request": "launch",
-            "program": "process_folder_script.py"
+            "program": "process_folder_of_folders.py"
         },
         {
             "name": "Debug hungarian",

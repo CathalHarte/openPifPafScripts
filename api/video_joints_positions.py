@@ -229,8 +229,8 @@ def process_video(
     workbook = Workbook()
 
     sheet_list = []
-    sheet = workbook.active
-    workbook.remove_sheet(sheet)
+    sheet = workbook.active # header sheet doesn't go into the list - we don't want to add data columns to it
+    sheet.append('Data generated using https://github.com/CathalHarte/openPifPafScripts video_joints_positions')
 
     time_stamp_seconds = 0.0
 
