@@ -230,7 +230,7 @@ def process_video(
 
     sheet_list = []
     sheet = workbook.active # header sheet doesn't go into the list - we don't want to add data columns to it
-    sheet.append('Data generated using https://github.com/CathalHarte/openPifPafScripts video_joints_positions')
+    sheet.append(['Data generated using https://github.com/CathalHarte/openPifPafScripts video_joints_positions'])
 
     time_stamp_seconds = 0.0
 
@@ -265,7 +265,7 @@ def process_video(
 
 
         image_rescale = get_resize_pow2(
-            max_allowed = 1280,
+            max_allowed = 360,
             image_dims = image_pifpaf.shape
         )
         # with image_descale as 
@@ -286,7 +286,7 @@ def process_video(
 
         if first_frame:
             ax, _ = animation.frame_init(image)
-            keypoint_painter.xy_scale = image_rescale
+            keypoint_painter.xy_scale = 1 # image_rescale
             first_frame = False
 
         for idx, pred in enumerate(preds):
@@ -302,8 +302,8 @@ def process_video(
 
         time_stamp_seconds = time_stamp_seconds + (1 / fps)
 
-        image_color_corrected = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        ax.imshow(image_color_corrected) 
+        # image_color_corrected = cv2.cvtColor(image_pifpaf, cv2.COLOR_BGR)
+        ax.imshow(image_pifpaf) 
         keypoint_painter.annotations(ax, preds)
 
         current_time = time.time()
