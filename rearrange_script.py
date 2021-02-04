@@ -33,8 +33,10 @@ def findNextStep(wb_in, name, row_index, timeStamp):
         return
 
 # Use raw string, I'm tired of double backslashing
-wb_in_location = r'C:\Users\STIMO2-Admin\data\side_on_tracked_20210118120124\PD_007_20160203_OFF_Marche06_skeleton.xlsx'
+wb_in_location = r'G:\MR14012021\Session_20210114_32EMGs_Loomo_tracked_20210201095152\20210114_03_skeleton.xlsx'
 wb_in = load_workbook(wb_in_location)
+
+wb_in.remove_sheet(wb_in.get_sheet_by_name("Sheet"))
 
 wb_out = Workbook()
 wb_out.remove_sheet(wb_out.active)
@@ -42,6 +44,7 @@ wb_out.remove_sheet(wb_out.active)
 matrix_dim = len(wb_in.sheetnames)
 
 input_sheet_names = wb_in.sheetnames
+
 
 output_sheets = []
 output_lists = []
@@ -101,7 +104,7 @@ while True:
         deletion_tuples = []
         for j, current_body_j in enumerate(current_bodies):
             for i, current_body_i in enumerate(current_bodies):
-                if np.linalg.norm(np.array(current_body_j) - np.array(current_body_i)) < 400:
+                if np.linalg.norm(np.array(current_body_j) - np.array(current_body_i)) < 900:
                     deletion_tuples.append([j,i])
         
         for deletion_tuple in deletion_tuples:
@@ -131,4 +134,4 @@ while True:
 
         previous_bodies = current_bodies_reordered
 
-wb_out.save(r'C:\Users\STIMO2-Admin\data\side_on_tracked_20210118120124\shuffled_med_sim_rejection.xlsx')
+wb_out.save(r'C:\Users\STIMO2-Admin\data\side_on_tracked_20210118120124\higher_sim_reject.xlsx')
